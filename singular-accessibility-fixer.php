@@ -1,59 +1,40 @@
 <?php
 /**
  * Plugin Name:       Singularity Accessibility Fixer
- * Plugin URI:        https://github.com/TU_USUARIO_GITHUB/TU_REPOSITORIO
- * Description:       Solución Híbrida (PHP + JS) y segura para problemas críticos de accesibilidad. Actualizable desde GitHub.
- * Version:           7.0.0
+ * Plugin URI:        https://github.com/jdavidsmonroy/singular-accessibility-fixer
+ * Description:       Solución Híbrida (PHP + JS) y segura para problemas críticos de accesibilidad.
+ * Version:           7.0.1
  * Author:            Juan David Suárez (Singularity Edge)
  * Author URI:        https://singularityedge.com
  * License:           GPLv2 or later
- * GitHub Plugin URI: https://github.com/TU_USUARIO_GITHUB/TU_REPOSITORIO
+ * GitHub Plugin URI: https://github.com/jdavidsmonroy/singular-accessibility-fixer
  */
 
-// Evita el acceso directo al archivo.
-if ( ! defined( 'ABSPATH' ) ) {
-    die;
-}
+// ¡¡¡ATENCIÓN!!! Recuerda cambiar el número de Versión a 7.0.1 (o la que corresponda) para la actualización.
 
-/**
- * =================================================================
- * ARREGLOS CON PHP (Para contenido estático y fiable)
- * =================================================================
- */
+if ( ! defined( 'ABSPATH' ) ) die;
 
-// 1. Solución verificada para el botón de Joinchat.
+// Solución verificada para el botón de Joinchat
 add_filter( 'joinchat_html_output', function( $html_output ) {
     $find = '<div class="joinchat__button" role="button" tabindex="0">';
     $replace = '<div class="joinchat__button" role="button" tabindex="0" aria-label="Contactar por WhatsApp">';
     return str_replace( $find, $replace, $html_output );
 }, 20, 1 );
 
-// 2. Inicia el búfer de salida para arreglar las imágenes.
+// Inicia el búfer para arreglar el HTML de forma segura
 add_action('init', function() {
-    if ( ! is_admin() ) {
-        ob_start( 'sng_fix_images_processor' );
-    }
+    if ( ! is_admin() ) ob_start( 'sng_safe_html_processor' );
 });
 
-// 3. Finaliza y limpia el búfer de forma segura al final de la carga.
 add_action('shutdown', function() {
-    if ( ! is_admin() && ob_get_length() ) {
-        ob_end_flush();
-    }
+    if ( ! is_admin() && ob_get_length() ) ob_end_flush();
 });
 
-/**
- * Procesa el HTML del <body> de forma segura para arreglar las imágenes.
- */
-function sng_fix_images_processor( $buffer ) {
-    if ( empty( $buffer ) || strpos( $buffer, '<body' ) === false ) {
-        return $buffer;
-    }
+function sng_safe_html_processor( $buffer ) {
+    if ( empty( $buffer ) || strpos( $buffer, '<body' ) === false ) return $buffer;
 
     $parts = preg_split( '/(<body.*?>)/i', $buffer, -1, PREG_SPLIT_DELIM_CAPTURE );
-    if ( count( $parts ) < 3 ) {
-        return $buffer;
-    }
+    if ( count( $parts ) < 3 ) return $buffer;
 
     $head_part = $parts[0];
     $body_tag  = $parts[1];
@@ -65,49 +46,40 @@ function sng_fix_images_processor( $buffer ) {
     libxml_clear_errors();
     $xpath = new DOMXPath( $dom );
 
-    // Arreglar imágenes sin 'alt' o con 'alt' vacío.
+    // Tarea 1: Arreglar imágenes sin 'alt'
     $images = $xpath->query( '//img[not(@alt) or @alt=""]' );
     foreach ( $images as $image ) {
         $title = $image->getAttribute( 'title' );
         $image->setAttribute( 'alt', $title ? $title : 'Imagen descriptiva' );
     }
     
+    // Tarea 2: Arreglar "skip links" vacíos
+    $skip_links = $xpath->query( '//a[contains(@class, "skip-link") and not(normalize-space())]' );
+    foreach ( $skip_links as $link ) {
+        $link->nodeValue = 'Saltar al contenido';
+    }
+    
     $processed_body = $dom->saveHTML();
     return $head_part . $body_tag . $processed_body;
 }
 
-/**
- * =================================================================
- * ARREGLOS CON JAVASCRIPT (Para contenido dinámico)
- * =================================================================
- */
-
-// 4. Carga nuestro script JS para arreglar elementos dinámicos.
+// Carga el script JS para arreglar elementos dinámicos
 add_action( 'wp_enqueue_scripts', function() {
     wp_enqueue_script(
         'sng-dynamic-fixer',
         plugin_dir_url( __FILE__ ) . 'js/dynamic-fixer.js',
         [],
-        '7.0.0', // Coincide con la versión del plugin
-        true     // Cargar en el footer
+        '7.0.1', // Coincide con la versión del plugin
+        true
     );
 } );
 
-/**
- * =================================================================
- * ACTUALIZADOR AUTOMÁTICO DESDE GITHUB
- * =================================================================
- */
-
-// 5. Carga e inicia la librería para las actualizaciones.
+// Carga e inicia la librería para las actualizaciones desde GitHub
 require_once __DIR__ . '/plugin-update-checker/plugin-update-checker.php';
-
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
-
 $myUpdateChecker = PucFactory::buildUpdateChecker(
-    'https://github.com/jdavidsmonroy/singular-accessibility-fixer/', // ¡¡¡CAMBIA ESTO!!!
+    'https://github.com/jdavidsmonroy/singular-accessibility-fixer/', // <-- ¡URL REAL INSERTADA!
     __FILE__,
     'singular-accessibility-fixer'
 );
-
 $myUpdateChecker->setBranch('main');

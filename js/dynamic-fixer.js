@@ -1,51 +1,74 @@
 /**
  * Singular Accessibility Fixer - Dynamic Content Fixer
+ * Versión: 7.1.0
  *
- * Soluciona problemas de accesibilidad en elementos cargados o modificados dinámicamente.
- * Versión: 7.0.1
+ * Se encarga de todas las correcciones del DOM de forma segura en el lado del cliente,
+ * asegurando máxima compatibilidad con otros plugins.
  */
+
 document.addEventListener('DOMContentLoaded', function() {
 
     /**
-     * Función principal que aplica las correcciones de accesibilidad.
-     * Está diseñada para ejecutarse varias veces y no duplicar arreglos.
+     * Función principal que aplica todas las correcciones de accesibilidad necesarias.
+     * Es idempotente, lo que significa que se puede ejecutar varias veces sin causar problemas.
      */
     const applyAccessibilityFixes = () => {
 
-        // Tarea 1: Arreglar "skip links" sin texto.
-        // Busca enlaces con la clase 'skip-link' que no tengan texto.
+        // Tarea 1: Arreglar imágenes sin 'alt' o con 'alt' vacío.
+        // Esto lo hacía antes PHP, ahora es responsabilidad de JS.
+        const images = document.querySelectorAll('img:not([alt]), img[alt=""]');
+        images.forEach(image => {
+            // Intenta usar el atributo 'title' si existe, si no, usa un texto genérico.
+            const title = image.getAttribute('title');
+            image.setAttribute('alt', title ? title.trim() : 'Imagen descriptiva');
+        });
+
+        // Tarea 2: Arreglar "skip links" sin texto o nombre accesible.
         const skipLinks = document.querySelectorAll('a.skip-link');
         skipLinks.forEach(link => {
-            // Si el texto está vacío (después de quitar espacios), le añade el contenido.
-            if (!link.textContent.trim()) {
+            // Si no tiene texto visible Y no tiene aria-label, lo arreglamos.
+            if (!link.textContent.trim() && !link.getAttribute('aria-label')) {
                 link.textContent = 'Saltar al contenido';
+                link.setAttribute('aria-label', 'Saltar al contenido');
             }
         });
 
-        // Tarea 2: Arreglar enlaces de íconos sin nombre discernible.
-        // Busca el enlace del ícono que apunta a "/mi-cuenta".
-        const accountIconLink = document.querySelector('a.elementor-icon[href*="/mi-cuenta"]');
-        if (accountIconLink) {
-            // Si no tiene ya una 'aria-label', se la añade.
-            // 'aria-label' es la forma correcta de dar un nombre accesible a un elemento sin texto visible.
-            if (!accountIconLink.getAttribute('aria-label')) {
-                accountIconLink.setAttribute('aria-label', 'Mi Cuenta');
+        // Tarea 3: Arreglar enlaces de íconos sin nombre discernible (ej. Elementor).
+        // Buscamos enlaces que contengan un ícono y no tengan texto ni label.
+        const iconLinks = document.querySelectorAll('a.elementor-icon:not([aria-label]), a:has(i[class*="fa-"]):not([aria-label])');
+        iconLinks.forEach(link => {
+            if (link.textContent.trim() === '') {
+                const href = link.getAttribute('href');
+                if (href) {
+                    if (href.includes('/mi-cuenta')) {
+                        link.setAttribute('aria-label', 'Mi Cuenta');
+                    } else if (href.includes('/carrito')) {
+                        link.setAttribute('aria-label', 'Carrito de compras');
+                    } else if (href.includes('tel:')) {
+                        link.setAttribute('aria-label', 'Llamar ahora');
+                    } else if (href.includes('mailto:')) {
+                        link.setAttribute('aria-label', 'Enviar correo electrónico');
+                    }
+                }
             }
-        }
+        });
     };
 
-    // Ejecuta los arreglos una vez que el contenido inicial de la página ha cargado.
+    // --- Ejecución y Observación ---
+
+    // Ejecuta los arreglos tan pronto como el DOM esté listo.
     applyAccessibilityFixes();
 
-    // ---- Observador de Mutaciones (La clave para contenido dinámico) ----
-    // Elementor y otros plugins pueden añadir elementos después de que la página cargue.
-    // Este observador vigila el 'body' y si detecta cambios (como nuevos elementos),
-    // vuelve a ejecutar nuestra función de arreglos para cubrirlos.
-    const observer = new MutationObserver(applyAccessibilityFixes);
+    // Configuramos un observador para manejar contenido cargado dinámicamente (AJAX).
+    // Esto asegura que los arreglos también se apliquen a elementos que aparecen más tarde.
+    const observer = new MutationObserver(() => {
+        // Volvemos a aplicar los arreglos si el DOM cambia.
+        applyAccessibilityFixes();
+    });
 
-    // Inicia la observación sobre todo el cuerpo de la página.
+    // Inicia la observación sobre todo el cuerpo del documento.
     observer.observe(document.body, {
-        childList: true, // Observar si se añaden o quitan elementos hijos.
+        childList: true, // Observar si se añaden/quitan elementos.
         subtree: true    // Observar también en todos los descendientes.
     });
 });

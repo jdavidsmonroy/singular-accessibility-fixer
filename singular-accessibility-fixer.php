@@ -3,7 +3,7 @@
  * Plugin Name:      Singularity Accessibility Fixer
  * Plugin URI:       https://github.com/jdavidsmonroy/singular-accessibility-fixer
  * Description:      Solución del lado del cliente (JavaScript) para problemas críticos de accesibilidad, asegurando máxima compatibilidad.
- * Version:          7.1.0
+ * Version:          7.1.1
  * Author:           Juan David Suárez (Singularity Edge)
  * Author URI:       https://singularityedge.com
  * License:          GPLv2 or later

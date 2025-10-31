@@ -35,7 +35,7 @@ add_action( 'wp_enqueue_scripts', function() {
         'sng-dynamic-fixer',
         plugin_dir_url( __FILE__ ) . 'js/dynamic-fixer.js',
         [], // Sin dependencias
-        '7.1.0', // Nueva versión del plugin
+        '7.1.1', // Nueva versión del plugin
         true // Cargar en el footer para asegurar que el DOM esté listo
     );
 }, 100); // Usamos una prioridad baja (100) para ejecutarlo después de otros scripts.

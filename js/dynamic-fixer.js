@@ -1,6 +1,6 @@
 /**
  * Singular Accessibility Fixer - Dynamic Content Fixer
- * Versión: 7.1.0
+ * Versión: 7.1.1
  *
  * Se encarga de todas las correcciones del DOM de forma segura en el lado del cliente,
  * asegurando máxima compatibilidad con otros plugins.
@@ -61,6 +61,14 @@ document.addEventListener("DOMContentLoaded", function () {
       joinchatButton.setAttribute("aria-label", "Contactar por WhatsApp");
     }
 
+    const qlwappButton = document.querySelector(
+      "a.qlwapp__button:not([aria-label])"
+    );
+
+    if (qlwappButton) {
+      qlwappButton.setAttribute("aria-label", "Contactar por WhatsApp");
+    }
+
     const mainSkipLink = document.querySelector("a.skip-link");
 
     // Solo continuar si el skip-link existe
@@ -88,6 +96,43 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
     }
+
+    // Tarea 4: Añadir 'aria-label' por defecto a elementos interactivos sin él.
+    const interactiveSelectors = 'button:not([aria-label]), a:not([aria-label]), [role="menuitem"]:not([aria-label])';
+    const elementsToFix = document.querySelectorAll(interactiveSelectors);
+
+    elementsToFix.forEach((el) => {
+      // Ignorar elementos que ya tienen su propia lógica de corrección.
+      if (el.classList.contains('skip-link') || el.classList.contains('qlwapp__button') || el.classList.contains('joinchat__button') || el.classList.contains('elementor-icon')) {
+        return;
+      }
+
+      // No sobreescribir si el nombre accesible puede venir de una imagen con alt no vacío.
+      if (el.querySelector('img[alt]:not([alt=""])')) {
+        return;
+      }
+
+      const text = el.textContent.trim();
+      const title = el.getAttribute('title');
+
+      let label = '';
+      if (text) {
+        label = text;
+      } else if (title) {
+        label = title.trim();
+      } else {
+        // Como última opción, usar un label genérico según el tipo de elemento.
+        if (el.tagName === 'A') {
+          label = 'Abrir enlace';
+        } else {
+          label = 'Botón de acción';
+        }
+      }
+      // Solo añadir el atributo si hemos podido generar un label.
+      if (label) {
+        el.setAttribute('aria-label', label);
+      }
+    });
   };
 
   // --- Ejecución y Observación ---
